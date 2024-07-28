@@ -18,6 +18,7 @@ use rand_core::{impls, le, RngCore, SeedableRng};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "speedy")]
+use speedy::{Readable, Writable};
 
 /// A PCG random number generator (XSL RR 128/64 (LCG) variant).
 ///
