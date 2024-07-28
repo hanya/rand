@@ -17,6 +17,7 @@ use core::fmt;
 use rand_core::{impls, le, RngCore, SeedableRng};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "speedy")]
 
 /// A PCG random number generator (XSL RR 128/64 (LCG) variant).
 ///
@@ -267,4 +268,68 @@ fn output_xsl_rr(state: u128) -> u64 {
     let rot = (state >> ROTATE) as u32;
     let xsl = ((state >> XSHIFT) as u64) ^ (state as u64);
     xsl.rotate_right(rot)
+}
+
+#[cfg(feature = "speedy")]
+impl <'a, C> Readable<'a, C> for Lcg128Xsl64
+    where C: speedy::Context
+{
+    #[inline]
+    fn read_from<R: speedy::Reader<'a, C>>(reader: &mut R) -> Result<Self, C::Error> {
+        let state = reader.read_u128()?;
+        let increment = reader.read_u128()?;
+        Ok(Self { state, increment })
+    }
+
+    #[inline]
+    fn minimum_bytes_needed() -> usize {
+        32
+    }
+}
+
+#[cfg(feature = "speedy")]
+impl <C> Writable<C> for Lcg128Xsl64
+    where C: speedy::Context
+{
+    fn write_to<W: ?Sized + speedy::Writer<C>>(&self, writer: &mut W) -> Result<(), C::Error> {
+        writer.write_u128(self.state)?;
+        writer.write_u128(self.increment)?;
+        Ok(())
+    }
+
+    #[inline]
+    fn bytes_needed(&self) -> Result<usize, C::Error> {
+        Ok(32)
+    }
+}
+
+#[cfg(feature = "speedy")]
+impl <'a, C> Readable<'a, C> for Mcg128Xsl64
+    where C: speedy::Context
+{
+    #[inline]
+    fn read_from<R: speedy::Reader<'a, C>>(reader: &mut R) -> Result<Self, C::Error> {
+        let state = reader.read_u128()?;
+        Ok(Self { state })
+    }
+
+    #[inline]
+    fn minimum_bytes_needed() -> usize {
+        16
+    }
+}
+
+#[cfg(feature = "speedy")]
+impl <C> Writable<C> for Mcg128Xsl64
+    where C: speedy::Context
+{
+    fn write_to<W: ?Sized + speedy::Writer<C>>(&self, writer: &mut W) -> Result<(), C::Error> {
+        writer.write_u128(self.state)?;
+        Ok(())
+    }
+
+    #[inline]
+    fn bytes_needed(&self) -> Result<usize, C::Error> {
+        Ok(16)
+    }
 }
