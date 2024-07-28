@@ -17,6 +17,8 @@ use core::fmt;
 use rand_core::{impls, le, RngCore, SeedableRng};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "speedy")]
+use speedy::{Readable, Writable};
 
 /// A PCG random number generator (CM DXSM 128/64 (LCG) variant).
 ///
@@ -174,4 +176,37 @@ fn output_dxsm(state: u128) -> u64 {
     hi = hi.wrapping_mul(lo);
 
     hi
+}
+
+#[cfg(feature = "speedy")]
+impl <'a, C> Readable<'a, C> for Lcg128CmDxsm64
+    where C: speedy::Context
+{
+    #[inline]
+    fn read_from<R: speedy::Reader<'a, C>>(reader: &mut R) -> Result<Self, C::Error> {
+        let state = reader.read_u128()?;
+        let increment = reader.read_u128()?;
+        Ok(Self { state, increment })
+    }
+
+    #[inline]
+    fn minimum_bytes_needed() -> usize {
+        32
+    }
+}
+
+#[cfg(feature = "speedy")]
+impl <C> Writable<C> for Lcg128CmDxsm64
+    where C: speedy::Context
+{
+    fn write_to<W: ?Sized + speedy::Writer<C>>(&self, writer: &mut W) -> Result<(), C::Error> {
+        writer.write_u128(self.state)?;
+        writer.write_u128(self.increment)?;
+        Ok(())
+    }
+
+    #[inline]
+    fn bytes_needed(&self) -> Result<usize, C::Error> {
+        Ok(32)
+    }
 }
