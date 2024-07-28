@@ -14,6 +14,8 @@ use core::fmt;
 use rand_core::{impls, le, RngCore, SeedableRng};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "speedy")]
+use speedy::{Readable, Writable};
 
 // This is the default multiplier used by PCG for 64-bit state.
 const MULTIPLIER: u64 = 6364136223846793005;
@@ -160,5 +162,38 @@ impl RngCore for Lcg64Xsh32 {
     #[inline]
     fn fill_bytes(&mut self, dest: &mut [u8]) {
         impls::fill_bytes_via_next(self, dest)
+    }
+}
+
+#[cfg(feature = "speedy")]
+impl <'a, C> Readable<'a, C> for Lcg64Xsh32
+    where C: speedy::Context
+{
+    #[inline]
+    fn read_from<R: speedy::Reader<'a, C>>(reader: &mut R) -> Result<Self, C::Error> {
+        let state = reader.read_u64()?;
+        let increment = reader.read_u64()?;
+        Ok(Lcg64Xsh32 { state, increment })
+    }
+
+    #[inline]
+    fn minimum_bytes_needed() -> usize {
+        16
+    }
+}
+
+#[cfg(feature = "speedy")]
+impl <C> Writable<C> for Lcg64Xsh32
+    where C: speedy::Context
+{
+    fn write_to<W: ?Sized + speedy::Writer<C>>(&self, writer: &mut W) -> Result<(), C::Error> {
+        writer.write_u64(self.state)?;
+        writer.write_u64(self.increment)?;
+        Ok(())
+    }
+
+    #[inline]
+    fn bytes_needed(&self) -> Result<usize, C::Error> {
+        Ok(16)
     }
 }
